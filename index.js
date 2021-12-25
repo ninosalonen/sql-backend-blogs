@@ -14,6 +14,10 @@ const sequelize = new Sequelize(process.env.DATABASE_URL, {
   },
 })
 
+app.get('/', async (req, res) => {
+  res.send('Welcome')
+})
+
 app.get('/api', async (req, res) => {
   const notes = await sequelize.query('select * from notes;', {
     type: QueryTypes.SELECT,
