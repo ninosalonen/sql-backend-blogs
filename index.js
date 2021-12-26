@@ -1,76 +1,33 @@
 require('dotenv').config()
 require('express-async-errors')
-const { Sequelize, Model, DataTypes } = require('sequelize')
 const express = require('express')
 const app = express()
+const blogsRouter = require('./controllers/blogs')
+const usersRouter = require('./controllers/users')
+const loginRouter = require('./controllers/login')
+const authorRouter = require('./controllers/authors')
+const { PORT } = require('./utils/config')
+const { connectToDatabase } = require('./utils/db')
+const middleware = require('./utils/middleware')
 
 app.use(express.json())
+app.use(middleware.tokenExtract)
 
-const sequelize = new Sequelize(process.env.DATABASE_URL, {
-  dialectOptions: {
-    ssl: {
-      require: true,
-      rejectUnauthorized: false,
-    },
-  },
-})
+app.use('/api/blogs', blogsRouter)
+app.use('/api/users', usersRouter)
+app.use('/api/login', loginRouter)
+app.use('/api/authors', authorRouter)
 
-class Blog extends Model {}
-Blog.init(
-  {
-    id: {
-      type: DataTypes.INTEGER,
-      primaryKey: true,
-      autoIncrement: true,
-    },
-    author: {
-      type: DataTypes.TEXT,
-    },
-    url: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-    },
-    title: {
-      type: DataTypes.TEXT,
-      allowNull: false,
-    },
-    likes: {
-      type: DataTypes.INTEGER,
-      defaultValue: 0,
-    },
-  },
-  {
-    sequelize,
-    underscored: true,
-    timestamps: false,
-    modelName: 'blog',
-  }
-)
+app.use(middleware.error)
+app.use(middleware.unknownEndpoint)
 
-app.get('/', async (req, res) => {
-  res.send('Welcome')
-})
+const runPort = PORT || 3001
 
-app.get('/api/blogs', async (req, res) => {
-  const blogs = await Blog.findAll()
-  res.json(blogs)
-})
-
-app.post('/api/blogs', async (req, res) => {
-  const blog = await Blog.create(req.body)
-  res.json(blog)
-})
-
-app.delete('/api/blogs/:id', async (req, res) => {
-  const deleted = await Blog.destroy({
-    where: {
-      id: req.params.id,
-    },
+const start = () => {
+  connectToDatabase()
+  app.listen(PORT, () => {
+    console.log(`Running on port ${runPort}`)
   })
-  res.json(deleted)
-})
+}
 
-const PORT = process.env.PORT || 3001
-app.listen(PORT, () => {
-  console.log(`Running on port ${PORT}`)
-})
+start()
